@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface Apache</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card-min-h {
+            min-height: 300px;
+        }
+        .logo-container {
+            width: 180px;
+            height: 45px;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+        }
+        .logo-image {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+            object-position: top;
+        }
+        .loading-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-black p-4 flex justify-between items-center shadow-sm">
+        <div class="flex items-center space-x-2">
+            <div class="logo-container">
+                <img src="https://httpd.apache.org/images/asf_logo_wide.gif" alt="Logo Apache" class="logo-image" onerror="this.src='https://www.apache.org/img/asf_logo.png'">
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="font-bold text-gray-700 tracking-widest">NOME</span>
+            <div class="w-10 h-10 border-2 border-black rounded-full bg-gray-200"></div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+
+            <!-- Card 1: Mensagem do JS -->
+            <div class="bg-white border-2 border-black p-8 rounded-lg shadow-md flex flex-col items-center justify-center card-min-h text-center">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-gray-200 pb-2 w-full uppercase text-gray-500 text-sm tracking-wider">Lógica Local (JS)</h2>
+                <p id="js-message" class="text-lg text-blue-600 font-medium italic">
+                    Gerando mensagem...
+                </p>
+            </div>
+
+            <!-- Card 2: Mensagem da API Java -->
+            <div class="bg-white border-2 border-black p-8 rounded-lg shadow-md flex flex-col items-center justify-center card-min-h text-center">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-gray-200 pb-2 w-full uppercase text-gray-500 text-sm tracking-wider">Integração API (Java)</h2>
+                <div id="api-container" class="w-full">
+                    <p id="api-message" class="text-lg text-green-600 font-medium loading-pulse">
+                        Tentando conectar ao localhost:8080...
+                    </p>
+                    <div id="error-advice" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700 text-left">
+                        <p class="font-bold mb-1">Dicas para correção:</p>
+                        <ul class="list-disc ml-4 space-y-1">
+                            <li>Verifique se o backend está rodando na porta 8080.</li>
+                            <li>Adicione <code>@CrossOrigin(origins = "*")</code> no seu Controller Java.</li>
+                            <li>Verifique se o endpoint <code>/api/msg</code> existe.</li>
+                        </ul>
+                        <button onclick="fetchApiMessage()" class="mt-3 w-full bg-red-600 text-white py-1 rounded hover:bg-red-700 transition-colors">Tentar Novamente</button>
+                    </div>
+                    <p id="api-status" class="text-[10px] text-gray-400 mt-4 font-mono">GET http://localhost:8080/api/msg</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-black p-6 text-center shadow-inner">
+        <p class="text-gray-600 text-sm">
+            © 2024 Projeto Apache - "roda pé com informação sobre o apache"
+        </p>
+        <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Sistemas Distribuídos e Integração de APIs</p>
+    </footer>
+
+    <script>
+        // 1. Mensagem gerada localmente
+        function loadLocalMessage() {
+            const msgElement = document.getElementById('js-message');
+            const localMsg = "msg gerado no js do codigo";
+            setTimeout(() => {
+                msgElement.textContent = `"${localMsg}"`;
+            }, 300);
+        }
+
+        // 2. Busca de dados na API com tratamento de erros aprimorado
+        async function fetchApiMessage() {
+            const apiElement = document.getElementById('api-message');
+            const adviceElement = document.getElementById('error-advice');
+            const url = 'http://192.168.10.111:8080/wallet-api-0.0.2-SNAPSHOT/api/msg';
+
+            // Resetar UI para estado de carregamento
+            apiElement.textContent = "Conectando...";
+            apiElement.className = "text-lg text-green-600 font-medium loading-pulse";
+            adviceElement.classList.add('hidden');
+
+            try {
+                // Timeout de 5 segundos para a requisição
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    mode: 'cors' // Força o modo CORS
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`Servidor respondeu com erro: ${response.status}`);
+                }
+
+                const data = await response.text();
+                apiElement.textContent = data;
+                apiElement.classList.remove('loading-pulse', 'text-red-500');
+                apiElement.classList.add('text-green-600');
+            } catch (error) {
+                console.error("Erro detalhado:", error);
+
+                apiElement.classList.remove('loading-pulse');
+                apiElement.classList.add('text-red-500');
+
+                if (error.name === 'AbortError') {
+                    apiElement.textContent = "Tempo de conexão esgotado.";
+                } else {
+                    apiElement.textContent = "Erro de Conexão (CORS ou Offline)";
+                }
+
+                adviceElement.classList.remove('hidden');
+            }
+        }
+
+        window.onload = () => {
+            loadLocalMessage();
+            fetchApiMessage();
+        };
+    </script>
+</body>
+</html>
